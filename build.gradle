@@ -1,0 +1,157 @@
+plugins {
+    id "net.minecraftforge.gradle" version "[6.0.16,6.2)"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+
+version = project.mod_version
+group = project.maven_group
+
+java {
+    archivesBaseName = mod_name
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+minecraft {
+    mappings channel: "official", version: minecraft_version
+    accessTransformer = file("src/main/resources/META-INF/accesstransformer.cfg")
+
+    runs {
+        client {
+            workingDirectory project.file("run")
+
+            property "forge.logging.markers", "REGISTRIES"
+            property "forge.logging.console.level", "debug"
+
+            mods {
+                forgeexporter {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file("run")
+
+            property "forge.logging.markers", "REGISTRIES"
+            property "forge.logging.console.level", "debug"
+
+
+            mods {
+                forgeexporter {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file("run")
+
+            property "forge.logging.markers", "REGISTRIES"
+            property "forge.logging.console.level", "debug"
+
+            args "--mod", "forgeexporter", "--all", "--output", file("src/generated/resources/"), "--existing", file("src/main/resources/")
+
+            mods {
+                forgeexporter {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir "src/generated/resources" }
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+
+    def micrometerVersion = "1.15.1"
+    minecraftLibrary(shadow("io.micrometer:micrometer-registry-prometheus:$micrometerVersion") {
+        exclude group: "org.apache.logging.log4j", module: "log4j-api"
+        exclude group: "org.apache.logging.log4j", module: "log4j-core"
+        exclude group: "commons-logging", module: "commons-logging"
+        exclude group: "org.slf4j", module: "slf4j-api"
+        exclude group: "org.slf4j", module: "slf4j-simple"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+    })
+
+    def jettyVersion = "12.0.23"
+    minecraftLibrary(shadow("org.eclipse.jetty:jetty-unixdomain-server:${jettyVersion}") {
+        exclude group: "org.apache.logging.log4j", module: "log4j-api"
+        exclude group: "org.apache.logging.log4j", module: "log4j-core"
+        exclude group: "commons-logging", module: "commons-logging"
+        exclude group: "org.slf4j", module: "slf4j-api"
+        exclude group: "org.slf4j", module: "slf4j-simple"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+    })
+
+    // lombok
+    def lombokVersion = "1.18.38"
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    testCompileOnly("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
+}
+
+jar {
+    manifest {
+        attributes([
+                "Specification-Title"     : "forgeexporter",
+                "Specification-Vendor"    : "forgeexporter authors",
+                "Specification-Version"   : "1", // We are version 1 of ourselves
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "forgeexporter authors",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+shadowJar {
+    manifest {
+        inheritFrom project.tasks.jar.manifest
+    }
+    configurations = [project.configurations.shadow]
+    finalizedBy "reobfShadowJar"
+
+    ext.relocateLib = { lib ->
+        relocate(lib, "${project.group}.lib.${lib}")
+    }
+    relocateLib "com.jayway"
+    relocateLib "groovy"
+    relocateLib "groovyjarjarantlr4"
+    relocateLib "groovyjarjarasm"
+    relocateLib "groovyjarjarpicocli"
+    relocateLib "io.prometheus"
+    relocateLib "io.restassured"
+    relocateLib "javax.servlet"
+    relocateLib "org.apache.commons"
+    relocateLib "org.apache.groovy"
+    relocateLib "org.apache.http"
+    relocateLib "org.ccil"
+    relocateLib "org.codehaus"
+    relocateLib "org.eclipse"
+    relocateLib "org.hamcrest"
+    relocateLib "org.objectweb"
+    relocateLib "net.minidev"
+    relocateLib "io.micrometer"
+    relocateLib "google.protobuf"
+    relocateLib "com.google.protobuf"
+    relocateLib "org.HdrHistogram"
+    relocateLib "org.LatencyUtils"
+}
+
+assemble.dependsOn shadowJar
+
+reobf {
+    shadowJar {}
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8" // Use the UTF-8 charset for Java compilation
+}

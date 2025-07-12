@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[38,)"
+license = "MIT"
+[[mods]]
+modId = "forgeexporter"
+version = "${file.jarVersion}"
+displayName = "Forge Exporter"
+#displayURL="http://example.com/"
+#logoFile="forge-exporter.png"
+#credits="Thanks for this example mod goes to Java"
+#authors="Love, Cheese and small house plants"
+description = '''
+
+'''
+
+[[dependencies.forge-exporter]]
+modId = "forge"
+mandatory = true
+versionRange = "[38,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.forge-exporter]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20,1.21)"
+ordering = "NONE"
+side = "BOTH"
