@@ -1,4 +1,4 @@
-package live.noumifuurinn.forgeexporter;
+package live.noumifuurinn;
 
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import net.minecraft.server.MinecraftServer;
@@ -29,7 +29,7 @@ public class ForgeExporter {
 
     private static final Logger LOGGER = LogManager.getLogger();
     private static MinecraftServer mcServer;
-    private final static Map<Object, Runnable> serverTickReg = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<Object, Runnable> serverTickReg = new java.util.concurrent.ConcurrentHashMap<>();
     private static final CompositeMeterRegistry registry = new CompositeMeterRegistry();
 
     private MetricsServer server;

@@ -1,12 +1,14 @@
-package live.noumifuurinn.forgeexporter.metrics;
+package live.noumifuurinn.metrics;
 
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import live.noumifuurinn.forgeexporter.ForgeExporter;
+import live.noumifuurinn.ForgeExporter;
 import lombok.SneakyThrows;
 import net.minecraft.server.level.ServerLevel;
 
 import java.lang.ref.SoftReference;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -21,18 +23,21 @@ public abstract class WorldMetric extends Metric {
     }
 
     @Override
-    public final void register() {
-        syncWorlds();
+    public final Collection<Meter> register() {
+        return syncWorlds();
     }
 
-    private void syncWorlds() {
+    private Collection<Meter> syncWorlds() {
         if (!isEnabled()) {
-            return;
+            return meters;
         }
 
+        var meters = new ArrayList<Meter>();
         for (ServerLevel world : ForgeExporter.getServer().getAllLevels()) {
-            worldMeters.computeIfAbsent(new SoftReference<>(world), ref -> this.register(world));
+            var meter = worldMeters.computeIfAbsent(new SoftReference<>(world), ref -> this.register(world));
+            meters.add(meter);
         }
+        return meters;
     }
 
 

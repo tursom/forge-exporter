@@ -1,8 +1,9 @@
-package live.noumifuurinn.forgeexporter.metrics;
+package live.noumifuurinn.metrics;
 
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import live.noumifuurinn.forgeexporter.ForgeExporter;
+import live.noumifuurinn.ForgeExporter;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,8 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,15 +32,17 @@ public class PlayerOnline extends Metric {
     }
 
     @Override
-    public void register() {
+    public Set<Meter> register() {
+        var meters = new HashSet<Meter>();
         for (ServerPlayer player : ForgeExporter.getServer().getPlayerList().getPlayers()) {
-            register(player);
+            meters.add(register(player));
         }
+        return meters;
     }
 
     @SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        register(event.getEntity());
+        meters.add(register(event.getEntity()));
     }
 
     @SubscribeEvent
@@ -45,19 +50,21 @@ public class PlayerOnline extends Metric {
         remove(event.getEntity());
     }
 
-    private void register(Player player) {
-        status.computeIfAbsent(
+    private Meter register(Player player) {
+        PlayerStatus playerStatus = status.computeIfAbsent(
                 player.getUUID(),
                 ignore -> {
-                    PlayerStatus playerStatus = new PlayerStatus();
-                    playerStatus.gauge = Gauge.builder(prefix("player.online"), playerStatus, PlayerStatus::getState)
+                    PlayerStatus ps = new PlayerStatus();
+                    ps.gauge = Gauge.builder(prefix("player.online"), ps, PlayerStatus::getState)
                             .description("Online state by player name")
                             .tag("name", player.getName().getString())
                             .tag("uid", player.getUUID().toString())
                             .register(registry);
-                    return playerStatus;
+                    return ps;
                 }
-        ).state = 1;
+        );
+        playerStatus.state = 1;
+        return playerStatus.gauge;
     }
 
     private void remove(Player player) {
@@ -80,6 +87,7 @@ public class PlayerOnline extends Metric {
     private void remove(UUID uuid, Gauge gauge) {
         if (status.remove(uuid, new PlayerStatus(0))) {
             registry.remove(gauge);
+            meters.remove(gauge);
         }
     }
 
