@@ -2,8 +2,7 @@ package live.noumifuurinn.metrics;
 
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import live.noumifuurinn.ForgeExporter;
-import lombok.SneakyThrows;
+import live.noumifuurinn.utils.CommonUtils;
 import net.minecraft.server.level.ServerLevel;
 
 import java.lang.ref.SoftReference;
@@ -11,49 +10,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 public abstract class WorldMetric extends Metric {
     private final ConcurrentMap<SoftReference<ServerLevel>, Meter> worldMeters = new ConcurrentHashMap<>();
 
     public WorldMetric(MeterRegistry registry) {
         super(registry);
-
-        ForgeExporter.EXECUTOR_SERVICE.scheduleWithFixedDelay(this::syncWorldsTask, 10, 10, TimeUnit.MINUTES);
     }
 
     @Override
     public final Collection<Meter> register() {
-        return syncWorlds();
-    }
-
-    private Collection<Meter> syncWorlds() {
-        if (!isEnabled()) {
-            return meters;
-        }
-
         var meters = new ArrayList<Meter>();
-        for (ServerLevel world : ForgeExporter.getServer().getAllLevels()) {
+        for (ServerLevel world : CommonUtils.getServer().getAllLevels()) {
             var meter = worldMeters.computeIfAbsent(new SoftReference<>(world), ref -> this.register(world));
             meters.add(meter);
         }
         return meters;
-    }
-
-
-    @SneakyThrows
-    private void syncWorldsTask() {
-        // 检查是否有世界被卸载
-        worldMeters.forEach((world, meter) -> {
-            if (world.get() != null) {
-                return;
-            }
-
-            registry.remove(meter);
-        });
-
-        // 加载新创建的新世界
-        syncWorlds();
     }
 
     protected abstract Meter register(ServerLevel world);

@@ -1,35 +1,26 @@
 package live.noumifuurinn;
 
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
-import net.minecraft.server.MinecraftServer;
+import io.micrometer.core.instrument.config.MeterFilter;
+import live.noumifuurinn.utils.CommonUtils;
+import net.minecraft.util.StringUtil;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import org.jetbrains.annotations.NotNull;
 
 @Mod(ForgeExporter.MODID)
 public class ForgeExporter {
     public static final String MODID = "forgeexporter";
-    public static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "ForgeExporter-Executor");
-        thread.setDaemon(true);
-        return thread;
-    });
-
     private static final Logger LOGGER = LogManager.getLogger();
-    private static MinecraftServer mcServer;
-    private static final Map<Object, Runnable> serverTickReg = new java.util.concurrent.ConcurrentHashMap<>();
     private static final CompositeMeterRegistry registry = new CompositeMeterRegistry();
 
     private MetricsServer server;
@@ -41,8 +32,21 @@ public class ForgeExporter {
 
     @SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) throws Exception {
-        mcServer = event.getServer();
+        if (!StringUtil.isNullOrEmpty(Config.prefix.get())) {
+            registry.config().meterFilter(new MeterFilter() {
+                @Override
+                public Meter.@NotNull Id map(Meter.@NotNull Id id) {
+                    return id.withName(Config.prefix.get() + id.getName());
+                }
+            });
+        }
+        if (!Config.tags.get().isEmpty()) {
+            registry.config().commonTags(Config.tags.get().entrySet().stream()
+                    .map((entry) -> Tag.of(entry.getKey(), entry.getValue()))
+                    .toList());
+        }
 
+        CommonUtils.setServer(event.getServer());
         startMetricsServer();
     }
 
@@ -61,43 +65,11 @@ public class ForgeExporter {
         }
 
         // 清理服务器引用
-        mcServer = null;
-    }
-
-    @SubscribeEvent
-    public void onTick(TickEvent event) {
-        if (event.phase != TickEvent.Phase.START) {
-            return;
-        }
-        if (event.type != TickEvent.Type.SERVER) {
-            return;
-        }
-        if (event.side != LogicalSide.SERVER) {
-            return;
-        }
-        for (Runnable r : serverTickReg.values()) {
-            try {
-                r.run();
-            } catch (Throwable t) {
-
-            }
-        }
-    }
-
-    public static void registerServerTickEvent(Object parent, Runnable r) {
-        serverTickReg.put(parent, r);
-    }
-
-    public static void unregisterServerTickEvent(Object parent) {
-        serverTickReg.remove(parent);
+        CommonUtils.setServer(null);
     }
 
     public Logger getLogger() {
         return LOGGER;
-    }
-
-    public static MinecraftServer getServer() {
-        return mcServer;
     }
 
     private void startMetricsServer() throws Exception {

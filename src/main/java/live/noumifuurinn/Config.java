@@ -1,10 +1,9 @@
 package live.noumifuurinn;
 
 
+import com.electronwill.nightconfig.toml.TomlFormat;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 // An example config class. This is not required, but it's a good idea to have one to keep your config organized.
 // Demonstrates how to use Neo's config APIs
@@ -21,11 +20,17 @@ public class Config {
         }
     }
 
-    public static final ForgeConfigSpec SPEC = BUILDER.build();
+    public static final ForgeConfigSpec.ConfigValue<String> prefix = BUILDER
+            .comment("指标前缀")
+            .define("prefix", "mc.");
 
-    @SubscribeEvent
-    static void onLoad(final ModConfigEvent event) {
-    }
+    public static final ForgeConfigSpec.ConfigValue<com.electronwill.nightconfig.core.Config> tags = BUILDER
+            .comment("公共标签")
+            .define("tags",
+                    () -> com.electronwill.nightconfig.core.Config.of(TomlFormat.instance()),
+                    value -> true);
+
+    public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     public static class Prometheus {
         static {
@@ -63,40 +68,40 @@ public class Config {
                 .comment("是否启用 gc 监控")
                 .define("gc", true);
         public static final ForgeConfigSpec.BooleanValue ENTITIES = BUILDER
-                .comment("是否启用 mc.entities 监控")
+                .comment("是否启用 entities 监控")
                 .define("entities", true);
         public static final ForgeConfigSpec.BooleanValue LOADED_CHUNKS = BUILDER
-                .comment("是否启用 mc.loaded.chunks.total 监控")
+                .comment("是否启用 loaded.chunks 监控")
                 .define("loadedChunks", true);
         public static final ForgeConfigSpec.BooleanValue MEMORY = BUILDER
                 .comment("是否启用 memory 监控")
                 .define("memory", true);
         public static final ForgeConfigSpec.BooleanValue PLAYER_ONLINE = BUILDER
-                .comment("是否启用 mc.player.online 监控")
+                .comment("是否启用 player.online 监控")
                 .define("playerOnline", true);
-        public static final ForgeConfigSpec.BooleanValue PLAYERS_ONLINE_TOTAL = BUILDER
-                .comment("是否启用 mc.players.online 监控")
-                .define("playersOnline", true);
+        public static final ForgeConfigSpec.BooleanValue PLAYERS_WORLD = BUILDER
+                .comment("是否启用 players.world 监控")
+                .define("playersWorld", true);
         public static final ForgeConfigSpec.BooleanValue THREADS = BUILDER
                 .comment("是否启用 threads 监控")
                 .define("threads", true);
         public static final ForgeConfigSpec.BooleanValue TICK_DURATION_AVERAGE = BUILDER
-                .comment("是否启用 mc.tick.duration.average 监控")
+                .comment("是否启用 tick.duration.average 监控")
                 .define("tickDurationAverage", true);
         public static final ForgeConfigSpec.BooleanValue TICK_DURATION_MAX = BUILDER
-                .comment("是否启用 mc.tick.duration.max 监控")
+                .comment("是否启用 tick.duration.max 监控")
                 .define("tickDurationMax", true);
         public static final ForgeConfigSpec.BooleanValue TICK_DURATION_MEDIAN = BUILDER
-                .comment("是否启用 mc.tick.duration.median 监控")
+                .comment("是否启用 tick.duration.median 监控")
                 .define("tickDurationMedian", true);
         public static final ForgeConfigSpec.BooleanValue TICK_DURATION_MIN = BUILDER
-                .comment("是否启用 mc.tick.duration.min 监控")
+                .comment("是否启用 tick.duration.min 监控")
                 .define("tickDurationMin", true);
         public static final ForgeConfigSpec.BooleanValue TPS = BUILDER
-                .comment("是否启用 mc.tps 监控")
+                .comment("是否启用 tps 监控")
                 .define("tps", true);
         public static final ForgeConfigSpec.BooleanValue WORLD_SIZE = BUILDER
-                .comment("是否启用 mc.world.size 监控")
+                .comment("是否启用 world.size 监控")
                 .define("worldSize", true);
 
         static {
