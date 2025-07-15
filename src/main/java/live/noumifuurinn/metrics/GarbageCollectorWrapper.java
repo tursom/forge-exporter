@@ -10,6 +10,9 @@ public class GarbageCollectorWrapper extends BinderMetric {
 
     public GarbageCollectorWrapper(MeterRegistry registry) {
         super(registry);
+
+        // 防止 ClassNotFoundException
+        registry.remove(registry.timer("example"));
     }
 
     @Override
